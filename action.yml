@@ -1,0 +1,49 @@
+name: 'extract-text-from-artifact'
+description: 'Extract content from a text file coming from an artifact'
+author: Bullrich
+branding:
+  icon: book
+  color: purple
+inputs:
+  artifact-name:
+    description: 'Name of the artifact to look for'
+    required: true
+outputs:
+  content:
+    description: "Content of the artifact file"
+    value: ${{ steps.content.outputs.CONTENT }}
+runs:
+  using: "composite"
+  steps:
+    - name: 'Download artifact'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+          });
+          let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+            return artifact.name == process.env.ARTIFACT_NAME
+          })[0];
+          let download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+          });
+          let fs = require('fs');
+          fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/${process.env.ARTIFACT_NAME}.zip`, Buffer.from(download.data));
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+    - name: 'Unzip artifact'
+      run: unzip $ARTIFACT_NAME.zip
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
+    - name: 'Export content'
+      id: content
+      run: |
+        echo "CONTENT=$(cat $ARTIFACT_NAME.txt)" >> $GITHUB_OUTPUT
+      env:
+        ARTIFACT_NAME: ${{ inputs.artifact-name }}
