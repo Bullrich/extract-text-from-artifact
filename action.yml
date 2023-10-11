@@ -39,11 +39,12 @@ runs:
         ARTIFACT_NAME: ${{ inputs.artifact-name }}
     - name: 'Unzip artifact'
       run: unzip $ARTIFACT_NAME.zip
+      shell: bash
       env:
         ARTIFACT_NAME: ${{ inputs.artifact-name }}
     - name: 'Export content'
       id: content
-      run: |
-        echo "CONTENT=$(cat $ARTIFACT_NAME.txt)" >> $GITHUB_OUTPUT
+      run: echo "CONTENT=$(cat $ARTIFACT_NAME.txt)" >> $GITHUB_OUTPUT
+      shell: bash
       env:
         ARTIFACT_NAME: ${{ inputs.artifact-name }}
